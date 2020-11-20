@@ -1,0 +1,8 @@
+{
+    "folderSource": "C:/Users/nbispo/Downloads/images/InputandOutput/input",
+    "folderOutput": "C:/Users/nbispo/Downloads/images/InputandOutput/output",
+    "folderModel": "C:\\Users\\nbispo\\Downloads\\images\\InputandOutput\\model",
+    "epochNumber": "10",
+    "originalFolder": "C:\\Users\\nbispo\\Downloads\\images\\InputandOutput\\images",
+    "originalModel": "C:/Users/nbispo/Downloads/images/InputandOutput/model/output.model"
+}
