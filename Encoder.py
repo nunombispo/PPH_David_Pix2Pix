@@ -8,7 +8,7 @@ class App(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Pix2Pix UI")
-        self.resize(650, 800)
+        self.resize(650, 900)
         self.table_widget = MyTableWidget(self)
         self.setCentralWidget(self.table_widget)
         self.show()

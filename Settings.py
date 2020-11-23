@@ -24,6 +24,12 @@ class Settings:
     def get_original_model(self):
         return self.settingsData["originalModel"]
 
+    def get_learning_rate(self):
+        return self.settingsData["learningRate"]
+
+    def get_batch_size(self):
+        return self.settingsData["batchSize"]
+
     def set_folder_source(self, folder):
         self.settingsData["folderSource"] = folder
 
@@ -41,6 +47,13 @@ class Settings:
 
     def set_original_model(self, model):
         self.settingsData["originalModel"] = model
+
+    def set_learning_rate(self, learning_rate):
+        self.settingsData["learningRate"] = learning_rate
+
+    def set_batch_size(self, batch_size):
+        self.settingsData["batchSize"] = batch_size
+
 
     def write_settings(self):
         try:
@@ -65,6 +78,8 @@ class Settings:
             "folderSource": "",
             "folderOutput": "",
             "folderModel": "",
+            "learningRate": "",
+            "batchSize": "",
             "epochNumber": "",
             "originalFolder": ""
         }
