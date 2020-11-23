@@ -1,29 +1,124 @@
 # example of pix2pix gan for satellite to map image-to-image translation
-from keras.preprocessing.image import load_img
+# load, split and scale the maps dataset ready for training
+import os
+from Settings import Settings
+from os import listdir
+from numpy import asarray
+from numpy import savez_compressed
 from numpy import zeros
 from numpy import ones
-from keras.optimizers import Adam
-from keras.initializers import RandomNormal
-from keras.models import Model
-from keras.models import Input
-from keras.layers import Conv2D
-from keras.layers import Conv2DTranspose
-from keras.layers import Activation
-from keras.layers import Concatenate
-from keras.layers import Dropout
-from keras.layers import BatchNormalization
-from keras.layers import LeakyReLU
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.initializers import RandomNormal
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input
+from tensorflow.keras.layers import Conv2D
+from tensorflow.keras.layers import Conv2DTranspose
+from tensorflow.keras.layers import Activation
+from tensorflow.keras.layers import Concatenate
+from tensorflow.keras.layers import Dropout
+from tensorflow.keras.layers import BatchNormalization
+from tensorflow.keras.layers import LeakyReLU
 from numpy.random import randint
-from keras.models import load_model
-from keras.preprocessing.image import load_img
-from keras.preprocessing.image import img_to_array
+from tensorflow.keras.models import load_model
+from tensorflow.keras.preprocessing.image import load_img
+from tensorflow.keras.preprocessing.image import img_to_array
 from numpy import load
 from numpy import expand_dims
 from matplotlib import pyplot
 
+from PyQt5.QtCore import *
+
+import time
+import traceback, sys
+
+
+class WorkerSignals(QObject):
+    '''
+    Defines the signals available from a running worker thread.
+
+    Supported signals are:
+
+    finished
+        No data
+
+    error
+        `tuple` (exctype, value, traceback.format_exc() )
+
+    result
+        `object` data returned from processing, anything
+
+    progress
+        `int` indicating % progress
+
+    '''
+    finished = pyqtSignal()
+    error = pyqtSignal(tuple)
+    result = pyqtSignal(object)
+    progress = pyqtSignal(object)
+
+
+class Worker(QRunnable):
+    '''
+    Worker thread
+
+    Inherits from QRunnable to handler worker thread setup, signals and wrap-up.
+
+    :param callback: The function callback to run on this worker thread. Supplied args and
+                     kwargs will be passed through to the runner.
+    :type callback: function
+    :param args: Arguments to pass to the callback function
+    :param kwargs: Keywords to pass to the callback function
+
+    '''
+
+    def __init__(self, fn, *args, **kwargs):
+        super(Worker, self).__init__()
+
+        # Store constructor arguments (re-used for processing)
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+        self.signals = WorkerSignals()
+
+        # Add the callback to our kwargs
+        self.kwargs['progress_callback'] = self.signals.progress
+
+    @pyqtSlot()
+    def run(self):
+        '''
+        Initialise the runner function with passed args, kwargs.
+        '''
+
+        # Retrieve args/kwargs here; and fire processing using them
+        try:
+            result = self.fn(*self.args, **self.kwargs)
+        except:
+            traceback.print_exc()
+            exctype, value = sys.exc_info()[:2]
+            self.signals.error.emit((exctype, value, traceback.format_exc()))
+        else:
+            self.signals.result.emit(result)  # Return the result of the processing
+        finally:
+            self.signals.finished.emit()  # Done
+
+
 class Pix2Pix:
-    def __init__(self):
-        pass
+    def __init__(self, source_path, original_path, folder_model, learning_rate, batch_size, epoch_number, edit_line):
+        self.source_path = source_path
+        self.original_path = original_path
+        self.folder_model = folder_model
+        self.learning_rate = learning_rate
+        self.batch_size = batch_size
+        self.epoch_number = epoch_number
+        self.edit_line = edit_line
+        self.threadpool = QThreadPool()
+        self.progress_callback = None
+
+    def callback_model(self, text):
+        self.progress_callback.emit(text)
+
+    def printSummary(self, text):
+        self.edit_line.insertPlainText('\n' + str(text))
 
     # define the discriminator model
     def define_discriminator(self, image_shape):
@@ -175,7 +270,8 @@ class Pix2Pix:
         return X, y
 
     # generate samples and save as a plot and save the model
-    def summarize_performance(self, step, g_model, dataset, n_samples=3):
+    def summarize_performance(self, step, g_model, dataset):
+        n_samples = int(self.learning_rate)
         # select a sample of input images
         [X_realA, X_realB], _ = self.generate_real_samples(dataset, n_samples, 1)
         # generate a batch of fake samples
@@ -201,15 +297,17 @@ class Pix2Pix:
             pyplot.imshow(X_realB[i])
         # save plot to file
         filename1 = 'plot_%06d.png' % (step+1)
-        pyplot.savefig(filename1)
+        pyplot.savefig(os.path.join(self.folder_model, filename1))
         pyplot.close()
         # save the generator model
         filename2 = 'model_%06d.h5' % (step+1)
-        g_model.save(filename2)
-        print('>Saved: %s and %s' % (filename1, filename2))
+        g_model.save(os.path.join(self.folder_model, filename2))
+        self.printSummary('\n>Saved: %s and %s' % (os.path.join(self.folder_model, filename1), os.path.join(self.folder_model, filename2)))
 
     # train pix2pix models
-    def train(self, d_model, g_model, gan_model, dataset, n_epochs=100, n_batch=1):
+    def train(self, d_model, g_model, gan_model, dataset):
+        n_epochs = int(self.epoch_number)
+        n_batch = int(self.batch_size)
         # determine the output square shape of the discriminator
         n_patch = d_model.output_shape[1]
         # unpack dataset
@@ -219,6 +317,7 @@ class Pix2Pix:
         # calculate the number of training iterations
         n_steps = bat_per_epo * n_epochs
         # manually enumerate epochs
+        self.printSummary("\ntrain A: " + str(len(trainA)) + " ;n_batch" + str(n_batch) + " ;bat_per_epo" + str(bat_per_epo))
         for i in range(n_steps):
             # select a batch of real samples
             [X_realA, X_realB], y_real = self.generate_real_samples(dataset, n_batch, n_patch)
@@ -231,25 +330,81 @@ class Pix2Pix:
             # update the generator
             g_loss, _, _ = gan_model.train_on_batch(X_realA, [y_real, X_realB])
             # summarize performance
-            print('>%d, d1[%.3f] d2[%.3f] g[%.3f]' % (i+1, d_loss1, d_loss2, g_loss))
+            self.printSummary('\n>%d, d1[%.3f] d2[%.3f] g[%.3f]' % (i+1, d_loss1, d_loss2, g_loss))
             # summarize model performance
             if (i+1) % (bat_per_epo * 10) == 0:
                 self.summarize_performance(i, g_model, dataset)
 
+    # load all images in a directory into memory
+    def load_images(self):
+        size = (256, 256)
+        src_list, tar_list = list(), list()
+        # enumerate filenames in directory, assume all are images
+        for filename in listdir(self.source_path):
+            # load and resize the image
+            pixels = load_img(os.path.join(self.source_path, filename), target_size=size)
+            # convert to numpy array
+            pixels = img_to_array(pixels)
+            # split into satellite and map
+            src_list.append(pixels)
+
+        for filename in listdir(self.original_path):
+            # load and resize the image
+            pixels = load_img(os.path.join(self.original_path, filename), target_size=size)
+            # convert to numpy array
+            pixels = img_to_array(pixels)
+            # split into satellite and map
+            tar_list.append(pixels)
+
+        # load dataset
+        [src_images, tar_images] = [asarray(src_list), asarray(tar_list)]
+        self.printSummary(('\nLoaded: ', src_images.shape, tar_images.shape))
+        # save as compressed numpy array
+        filename = 'set_256.npz'
+        savez_compressed(os.path.join(self.folder_model, filename), src_images, tar_images)
+        self.printSummary(('\nSaved dataset: ', os.path.join(self.folder_model, filename)))
 
     def execute_training(self):
+        # load images to dataset
+        self.load_images()
         # load image data
-        dataset = self.load_real_samples('maps_256.npz')
-        print('Loaded', dataset[0].shape, dataset[1].shape)
+        filename = 'set_256.npz'
+        dataset = self.load_real_samples(os.path.join(self.folder_model, filename))
+        self.printSummary(('\nLoaded', dataset[0].shape, dataset[1].shape))
         # define input shape based on the loaded dataset
         image_shape = dataset[0].shape[1:]
         # define the models
+        self.printSummary("\nDefine Discriminator")
         d_model = self.define_discriminator(image_shape)
+        self.printSummary("\nDefine Generator")
         g_model = self.define_generator(image_shape)
         # define the composite model
+        self.printSummary("\nDefine Gan")
         gan_model = self.define_gan(g_model, d_model, image_shape)
         # train model
+        self.printSummary("\nTrain Model")
         self.train(d_model, g_model, gan_model, dataset)
+        self.printSummary("\nExecution ENDED")
+
+    def progress_fn(self, text):
+        self.printSummary(text)
+
+    def print_output(self, s):
+        print(s)
+
+    def thread_complete(self):
+        self.printSummary("EXECUTION COMPLETE!")
+
+    def execute_this_fn(self, progress_callback):
+        self.progress_callback = progress_callback
+        self.execute_training()
+
+    def execute_training_thread(self):
+        worker = Worker(self.execute_this_fn)  # Any other args, kwargs are passed to the run function
+        worker.signals.result.connect(self.print_output)
+        worker.signals.finished.connect(self.thread_complete)
+        worker.signals.progress.connect(self.progress_fn)
+        self.threadpool.start(worker)
 
     # example of loading a pix2pix model and using it for one-off image translation
 
@@ -282,5 +437,8 @@ class Pix2Pix:
 
 
 if __name__ == '__main__':
-    pix = Pix2Pix()
+    settings = Settings()
+    settings.read_settings()
+    pix = Pix2Pix(settings.get_folder_source(), settings.get_folder_output())
     pix.execute_training()
+

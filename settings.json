@@ -2,9 +2,9 @@
     "folderSource": "C:/Users/nbispo/Downloads/images/InputandOutput/input",
     "folderOutput": "C:/Users/nbispo/Downloads/images/InputandOutput/output",
     "folderModel": "C:\\Users\\nbispo\\Downloads\\images\\InputandOutput\\model",
-    "learningRate": "11",
-    "batchSize": "12",
-    "epochNumber": "10",
+    "learningRate": "10",
+    "batchSize": "1",
+    "epochNumber": "100",
     "originalFolder": "C:\\Users\\nbispo\\Downloads\\images\\InputandOutput\\images",
     "originalModel": "C:/Users/nbispo/Downloads/images/InputandOutput/model/output.model"
 }

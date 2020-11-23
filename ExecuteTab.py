@@ -4,7 +4,7 @@ import shlex
 from Settings import Settings
 from PyQt5.QtWidgets import QTabWidget, QGroupBox, QFormLayout, QLabel, QLineEdit, QVBoxLayout, QDialogButtonBox, \
     QMessageBox, QTextEdit, QFileDialog, QPushButton
-from AutoEncoder import AutoEncoder
+from Pix2Pix import Pix2Pix
 
 
 class ExecuteTab(QTabWidget):
@@ -52,16 +52,10 @@ class ExecuteTab(QTabWidget):
 
     def training_model(self):
         self.line_edit_execute.setText("")
-        auto_encoder = AutoEncoder(self.settings.get_folder_source(), self.settings.get_folder_output(),
-                                  self.settings.get_folder_model(), self.line_edit_execute,
-                                   self.settings.get_epoch_number(), self.settings.get_original_image(),
-                                   self.settings.get_original_model())
-        auto_encoder.run_thread(False)
+        pix = Pix2Pix(self.settings.get_folder_source(), self.settings.get_folder_output(),
+                      self.settings.get_folder_model(), self.settings.get_learning_rate(),
+                      self.settings.get_batch_size(), self.settings.get_epoch_number(), self.line_edit_execute)
+        pix.execute_training_thread()
 
     def run_model(self):
-        self.line_edit_execute.setText("")
-        auto_encoder = AutoEncoder(self.settings.get_folder_source(), self.settings.get_folder_output(),
-                                  self.settings.get_folder_model(), self.line_edit_execute,
-                                   self.settings.get_epoch_number(), self.settings.get_original_image(),
-                                   self.settings.get_original_model())
-        auto_encoder.run_thread(True)
+        pass
