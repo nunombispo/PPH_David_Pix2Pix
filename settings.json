@@ -4,7 +4,7 @@
     "folderModel": "C:\\Users\\nbispo\\Downloads\\images\\InputandOutput\\model",
     "learningRate": "10",
     "batchSize": "1",
-    "epochNumber": "100",
+    "epochNumber": "10",
     "originalFolder": "C:\\Users\\nbispo\\Downloads\\images\\InputandOutput\\images",
-    "originalModel": "C:/Users/nbispo/Downloads/images/InputandOutput/model/output.model"
+    "originalModel": "C:/Users/nbispo/Downloads/images/InputandOutput/model/model_000100.h5"
 }

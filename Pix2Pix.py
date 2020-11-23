@@ -1,6 +1,6 @@
 # example of pix2pix gan for satellite to map image-to-image translation
 # load, split and scale the maps dataset ready for training
-import os
+import os, time
 from Settings import Settings
 from os import listdir
 from numpy import asarray
@@ -25,10 +25,8 @@ from tensorflow.keras.preprocessing.image import img_to_array
 from numpy import load
 from numpy import expand_dims
 from matplotlib import pyplot
-
+from PIL import Image
 from PyQt5.QtCore import *
-
-import time
 import traceback, sys
 
 
@@ -103,7 +101,8 @@ class Worker(QRunnable):
 
 
 class Pix2Pix:
-    def __init__(self, source_path, original_path, folder_model, learning_rate, batch_size, epoch_number, edit_line):
+    def __init__(self, source_path, original_path, folder_model, learning_rate, batch_size, epoch_number, edit_line,
+                 image, model):
         self.source_path = source_path
         self.original_path = original_path
         self.folder_model = folder_model
@@ -113,12 +112,15 @@ class Pix2Pix:
         self.edit_line = edit_line
         self.threadpool = QThreadPool()
         self.progress_callback = None
+        self.image = image
+        self.model = model
 
     def callback_model(self, text):
         self.progress_callback.emit(text)
 
     def printSummary(self, text):
         self.edit_line.insertPlainText('\n' + str(text))
+        time.sleep(0.25)
 
     # define the discriminator model
     def define_discriminator(self, image_shape):
@@ -281,20 +283,20 @@ class Pix2Pix:
         X_realB = (X_realB + 1) / 2.0
         X_fakeB = (X_fakeB + 1) / 2.0
         # plot real source images
-        for i in range(n_samples):
-            pyplot.subplot(3, n_samples, 1 + i)
-            pyplot.axis('off')
-            pyplot.imshow(X_realA[i])
-        # plot generated target image
-        for i in range(n_samples):
-            pyplot.subplot(3, n_samples, 1 + n_samples + i)
-            pyplot.axis('off')
-            pyplot.imshow(X_fakeB[i])
-        # plot real target image
-        for i in range(n_samples):
-            pyplot.subplot(3, n_samples, 1 + n_samples*2 + i)
-            pyplot.axis('off')
-            pyplot.imshow(X_realB[i])
+        # for i in range(n_samples):
+        #     pyplot.subplot(3, n_samples, 1 + i)
+        #     pyplot.axis('off')
+        #     pyplot.imshow(X_realA[i])
+        # # plot generated target image
+        # for i in range(n_samples):
+        #     pyplot.subplot(3, n_samples, 1 + n_samples + i)
+        #     pyplot.axis('off')
+        #     pyplot.imshow(X_fakeB[i])
+        # # plot real target image
+        # for i in range(n_samples):
+        #     pyplot.subplot(3, n_samples, 1 + n_samples*2 + i)
+        #     pyplot.axis('off')
+        #     pyplot.imshow(X_realB[i])
         # save plot to file
         filename1 = 'plot_%06d.png' % (step+1)
         pyplot.savefig(os.path.join(self.folder_model, filename1))
@@ -317,7 +319,7 @@ class Pix2Pix:
         # calculate the number of training iterations
         n_steps = bat_per_epo * n_epochs
         # manually enumerate epochs
-        self.printSummary("\ntrain A: " + str(len(trainA)) + " ;n_batch" + str(n_batch) + " ;bat_per_epo" + str(bat_per_epo))
+        self.printSummary("\ntrain A: " + str(len(trainA)) + " ; n_batch: " + str(n_batch) + " ; bat_per_epo: " + str(bat_per_epo))
         for i in range(n_steps):
             # select a batch of real samples
             [X_realA, X_realB], y_real = self.generate_real_samples(dataset, n_batch, n_patch)
@@ -358,11 +360,11 @@ class Pix2Pix:
 
         # load dataset
         [src_images, tar_images] = [asarray(src_list), asarray(tar_list)]
-        self.printSummary(('\nLoaded: ', src_images.shape, tar_images.shape))
+        self.printSummary(('Loaded: ', src_images.shape, tar_images.shape))
         # save as compressed numpy array
         filename = 'set_256.npz'
         savez_compressed(os.path.join(self.folder_model, filename), src_images, tar_images)
-        self.printSummary(('\nSaved dataset: ', os.path.join(self.folder_model, filename)))
+        self.printSummary(('Saved dataset: ', os.path.join(self.folder_model, filename)))
 
     def execute_training(self):
         # load images to dataset
@@ -370,7 +372,7 @@ class Pix2Pix:
         # load image data
         filename = 'set_256.npz'
         dataset = self.load_real_samples(os.path.join(self.folder_model, filename))
-        self.printSummary(('\nLoaded', dataset[0].shape, dataset[1].shape))
+        self.printSummary(('Loaded', dataset[0].shape, dataset[1].shape))
         # define input shape based on the loaded dataset
         image_shape = dataset[0].shape[1:]
         # define the models
@@ -422,18 +424,36 @@ class Pix2Pix:
 
     def execute_run(self):
         # load source image
-        src_image = self.load_image('satellite.jpg')
-        print('Loaded', src_image.shape)
-        # load model
-        model = load_model('model_109600.h5')
-        # generate image from source
-        gen_image = model.predict(src_image)
-        # scale from [-1,1] to [0,1]
-        gen_image = (gen_image + 1) / 2.0
-        # plot the image
-        pyplot.imshow(gen_image[0])
-        pyplot.axis('off')
-        pyplot.show()
+        for filename in listdir(self.image):
+            src_image = self.load_image(os.path.join(self.image, filename))
+            self.printSummary('\nPredicting file: ' + os.path.join(self.image, filename))
+            self.printSummary(('Loaded', src_image.shape))
+            # load model
+
+            self.printSummary('\nLoading model: ' + self.model)
+            model = load_model(self.model)
+            # generate image from source
+            self.printSummary('\nPredicting image...')
+            gen_image = model.predict(src_image)
+            # scale from [-1,1] to [0,1]
+            gen_image = (gen_image + 1) / 2.0
+
+            self.printSummary('\nSaving file: ' + os.path.join(self.folder_model, filename))
+            image = Image.fromarray(gen_image[0], 'RGB')
+            image.save(os.path.join(self.folder_model, filename))
+
+        self.printSummary('\nExecution ENDED')
+
+    def execute_this_fn_run(self, progress_callback):
+        self.progress_callback = progress_callback
+        self.execute_run()
+
+    def execute_run_thread(self):
+        worker = Worker(self.execute_this_fn_run)  # Any other args, kwargs are passed to the run function
+        worker.signals.result.connect(self.print_output)
+        worker.signals.finished.connect(self.thread_complete)
+        worker.signals.progress.connect(self.progress_fn)
+        self.threadpool.start(worker)
 
 
 if __name__ == '__main__':

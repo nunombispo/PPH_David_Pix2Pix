@@ -93,7 +93,8 @@ class SettingsTab(QTabWidget):
         home = str(Path.home())
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        filename = QFileDialog.getExistingDirectory(self, caption='Pick folder', directory=home, options=options)
+        filename, _ = QFileDialog.getOpenFileName(self, "Open Model file", self.settings.get_folder_model(),
+                                                  "Model (*.h5);; All files (*.*)", options=options)
         if filename:
             self.lineedit_original_model.setText(filename)
         else:

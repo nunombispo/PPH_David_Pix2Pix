@@ -54,8 +54,15 @@ class ExecuteTab(QTabWidget):
         self.line_edit_execute.setText("")
         pix = Pix2Pix(self.settings.get_folder_source(), self.settings.get_folder_output(),
                       self.settings.get_folder_model(), self.settings.get_learning_rate(),
-                      self.settings.get_batch_size(), self.settings.get_epoch_number(), self.line_edit_execute)
+                      self.settings.get_batch_size(), self.settings.get_epoch_number(), self.line_edit_execute,
+                      self.settings.get_original_image(), self.settings.get_original_model())
         pix.execute_training_thread()
 
     def run_model(self):
-        pass
+        self.line_edit_execute.setText("")
+        pix = Pix2Pix(self.settings.get_folder_source(), self.settings.get_folder_output(),
+                      self.settings.get_folder_model(), self.settings.get_learning_rate(),
+                      self.settings.get_batch_size(), self.settings.get_epoch_number(), self.line_edit_execute,
+                      self.settings.get_original_image(), self.settings.get_original_model())
+        pix.execute_run_thread()
+
