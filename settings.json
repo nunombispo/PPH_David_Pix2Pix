@@ -1,7 +1,7 @@
 {
-    "folderSource": "C:/Users/nbispo/Downloads/images/InputandOutput/input",
-    "folderOutput": "C:/Users/nbispo/Downloads/images/InputandOutput/output",
-    "folderModel": "C:\\Users\\nbispo\\Downloads\\images\\InputandOutput\\model",
+    "folderSource": "C:/Users/nbispo/Downloads/Images_For_Testing_Input-20201130T122433Z-001/Images_For_Testing_Input",
+    "folderOutput": "C:/Users/nbispo/Downloads/Images_For_Testing_Output-20201130T122450Z-001/Images_For_Testing_Output",
+    "folderModel": "C:/Users/nbispo/Downloads/Images_For_Testing_Output-20201130T122450Z-001/Model",
     "learningRate": "10",
     "batchSize": "1",
     "epochNumber": "10",
