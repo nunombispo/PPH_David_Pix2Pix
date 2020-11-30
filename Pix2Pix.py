@@ -298,13 +298,13 @@ class Pix2Pix:
         #     pyplot.axis('off')
         #     pyplot.imshow(X_realB[i])
         # save plot to file
-        filename1 = 'plot_%06d.png' % (step+1)
-        pyplot.savefig(os.path.join(self.folder_model, filename1))
-        pyplot.close()
+        #filename1 = 'plot_%06d.png' % (step+1)
+        #pyplot.savefig(os.path.join(self.folder_model, filename1))
+        #pyplot.close()
         # save the generator model
         filename2 = 'model_%06d.h5' % (step+1)
         g_model.save(os.path.join(self.folder_model, filename2))
-        self.printSummary('\n>Saved: %s and %s' % (os.path.join(self.folder_model, filename1), os.path.join(self.folder_model, filename2)))
+        self.printSummary('\n>Saved: %s ' % (os.path.join(self.folder_model, filename2)))
 
     # train pix2pix models
     def train(self, d_model, g_model, gan_model, dataset):
